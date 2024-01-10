@@ -3,11 +3,12 @@ from PySide6 import QtWidgets
 from PySide6.QtGui import QIntValidator, QRegularExpressionValidator
 from ui_converter import Ui_Converter
 import json
+import currency_parser
 
+# some global variables
 with open("measurments.json", "r") as f:
     config = json.load(f)
-#print(json.dumps(config,indent= 1))
-measurments = ["length", "area", "volume", "mass", "temperature", "speed", "time"]
+measurments = ["length", "currency", "area", "volume", "mass", "temperature", "speed", "time"]
 templist = ["K", "C", "F"]
 measurment = ""
 currentmeasurment = {}
@@ -23,21 +24,24 @@ class Converter(QtWidgets.QMainWindow):
         super(Converter, self).__init__()
         self.ui = Ui_Converter()
         self.ui.setupUi(self)
-        #self.ui.MainWindow.setWindowTitle("Converter")
         self.ui.Measurments.currentIndexChanged.connect(self.fillboxes)
         self.ui.Measurments.currentIndexChanged.emit(self)
         self.ui.Select1.activated.connect(self.setsel1)
         self.ui.Select2.activated.connect(self.setsel2)
-        validator = QRegularExpressionValidator("[+-]?([0-9]*[.])?[0-9]+", self)#QIntValidator(-2147483648, 2147483647)
+        validator = QRegularExpressionValidator("[+-]?([0-9]*[.])?[0-9]+", self)
         self.ui.Number1.setValidator(validator)
         self.ui.Number2.setValidator(validator)
         self.ui.Number1.textEdited.connect(self.number1changed)
         self.ui.Number2.textEdited.connect(self.number2changed)
+        #print(dir(self.ui))
+        self.ui.clearleft.clicked.connect(self.clearleft)
+        self.ui.clearright.clicked.connect(self.clearright)
+        self.ui.clearall.clicked.connect(self.clearall)
+
     def fillboxes(self):
         global measurment, measure1, measure2, currentmeasurment
         # set new information to the comboboxes
-        #get new items
-        print("filling")
+        # get new items
         currentindex = self.ui.Measurments.currentIndex()
         measurment = measurments[currentindex]
         if measurment == "temperature":
@@ -61,20 +65,15 @@ class Converter(QtWidgets.QMainWindow):
     def setsel1(self):
         global measure1
         measure1 = self.ui.Select1.currentText()
-        #print(measure1)
         if self.ui.Number1.text != "":
-            self.number1changed()#self.ui.Number1, self.ui.Number2)
+            self.number1changed()
     def setsel2(self):
         global measure2
-        #print(self.ui.Select2.currentText())
         measure2 = self.ui.Select2.currentText()     
-        #print(measure2, " swx")
         if self.ui.Number2.text != "":
             self.number2changed()
     def number1changed(self):
         global measurment, measure1, measure2, templist, number1, number2
-#        print("number1changed " + str(self.ui.Number1.text()))
-        #print(measure1, " ", measure2, " sas")
         if (measure1 != "" or measure2 != "") and self.ui.Number1.text() != '':
             if measurment != "temperature":
                 to_needed = 0
@@ -98,16 +97,14 @@ class Converter(QtWidgets.QMainWindow):
             self.ui.Number2.setText("")
     def number2changed(self):
         global measurment, measure1, measure2, templist
-#        print("number2changed " + str(self.ui.Number2.text()))
-        #print(measure1, " ", measure2, " sas")
         if (measure1 != "" or measure2 != "") and self.ui.Number2.text() != '':
             if measurment != "temperature":
                 to_needed = 0
                 msr1 = currentmeasurment[measure1]
                 msr2 = currentmeasurment[measure2]
                 number2 = float(self.ui.Number2.text())
-                to_base = number2 * msr1[0]
-                number1 = to_base * msr2[1]
+                to_base = number2 * msr2[0]
+                number1 = to_base * msr1[1]
                 self.ui.Number1.setText(str(number1))
             else:
                 msr1 = currentmeasurment[measure2]
@@ -121,8 +118,18 @@ class Converter(QtWidgets.QMainWindow):
         else: 
             number1 = ""
             self.ui.Number1.setText(number1)
-app = QtWidgets.QApplication(sys.argv)
-window = Converter()
-window.show()
-#print(window.Measurments.currentText()) 
-app.exec()
+    def clearleft(self):
+        self.ui.Number2.setText("")
+        self.number2changed()
+    def clearright(self):
+        self.ui.Number1.setText("")
+        self.number1changed()
+    def clearall(self):
+        self.ui.Number1.clear()
+        self.ui.Number2.clear()
+if __name__ == "__main__":
+    currency_parser.parse_currency()
+    app = QtWidgets.QApplication(sys.argv)
+    window = Converter()
+    window.show()
+    app.exec()
